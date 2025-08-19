@@ -45,12 +45,12 @@ android {
         // https://developer.android.com/guide/topics/graphics/vector-drawable-resources
         vectorDrawables.useSupportLibrary = true
 
-        externalNativeBuild {
-            cmake {
-                cFlags "-ffile-prefix-map=${rootDir}=."
-                cppFlags "-ffile-prefix-map=${rootDir}=."
-            }
-        }
+//        externalNativeBuild {
+//            cmake {
+//                cFlags "-ffile-prefix-map=${rootDir}=."
+//                cppFlags "-ffile-prefix-map=${rootDir}=."
+//            }
+//        }
 
         // https://developer.android.com/ndk/downloads
         // https://developer.android.com/guide/practices/page-sizes
@@ -107,12 +107,12 @@ android {
         jvmTarget = '1.8'
     }
 
-    externalNativeBuild {
-        cmake {
-            version = "3.22.1"
-            path "CMakeLists.txt"
-        }
-    }
+//    externalNativeBuild {
+//        cmake {
+//            version = "3.22.1"
+//            path "CMakeLists.txt"
+//        }
+//    }
 
     dependenciesInfo {
         includeInApk = false
