@@ -8030,6 +8030,31 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
             }.execute(context, owner, args, "message:raw");
         }
 
+        private void onActionItems(TupleMessageEx message) {
+            new SimpleTask<String>() {
+                @Override
+                protected String onExecute(Context context, Bundle args) throws Throwable {
+                    return AI.getActionItems(context, message.getHtml(context));
+                }
+
+                @Override
+                protected void onExecuted(Bundle args, String result) {
+                    if (result != null) {
+                        new AlertDialog.Builder(parentFragment.getContext())
+                                .setTitle(R.string.title_action_items)
+                                .setMessage(result)
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
+                    }
+                }
+
+                @Override
+                protected void onException(Bundle args, Throwable ex) {
+                    Log.unexpectedError(parentFragment.getParentFragmentManager(), ex);
+                }
+            }.execute(parentFragment.getContext(), parentFragment.getViewLifecycleOwner(), new Bundle(), "ai:actionitems");
+        }
+
         private void onMenuLog(TupleMessageEx message) {
             if (owner.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                 parentFragment.getParentFragmentManager().popBackStack("logs", FragmentManager.POP_BACK_STACK_INCLUSIVE);

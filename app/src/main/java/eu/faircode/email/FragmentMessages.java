@@ -11260,6 +11260,11 @@ public class FragmentMessages extends FragmentBase
                             }
                             return null;
                         }
+
+                        @Override
+                        protected void onException(Bundle args, Throwable ex) {
+                            Log.unexpectedError(getParentFragmentManager(), ex);
+                        }
                     }.execute(FragmentMessages.this, args, "messages:assign");
                 }
             }
@@ -11293,6 +11298,11 @@ public class FragmentMessages extends FragmentBase
                                 db.message().setMessageStatus(id, status);
                             }
                             return null;
+                        }
+
+                        @Override
+                        protected void onException(Bundle args, Throwable ex) {
+                            Log.unexpectedError(getParentFragmentManager(), ex);
                         }
                     }.execute(FragmentMessages.this, args, "messages:status");
                 }

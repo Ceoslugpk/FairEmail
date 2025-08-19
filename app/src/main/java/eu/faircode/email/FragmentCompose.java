@@ -1651,11 +1651,11 @@ public class FragmentCompose extends FragmentBase {
                                 Map<String, Integer> statuses = PgpHelper.queryAutocryptStatus(context, allAddresses, 250L);
                                 Integer senderStatus = statuses.get(identity.email);
 
-                                if (senderStatus != null && (senderStatus & OpenPgpApi.AUTOCRYPT_STATUS_PREFER_ENCRYPT_MUTUAL) != 0) {
+                                if (senderStatus != null && (senderStatus & OpenPgpApi.AUTOCRYPT_STATUS_MUTUAL) != 0) {
                                     boolean encrypt = true;
                                     for (Address recipient : recipients) {
                                         Integer recipientStatus = statuses.get(((InternetAddress) recipient).getAddress());
-                                        if (recipientStatus == null || (recipientStatus & OpenPgpApi.AUTOCRYPT_STATUS_ENABLED) == 0) {
+                                        if (recipientStatus == null || (recipientStatus & OpenPgpApi.AUTOCRYPT_STATUS_AVAILABLE) == 0) {
                                             encrypt = false;
                                             break;
                                         }
