@@ -1865,7 +1865,6 @@
     <string name="title_translate">Translate</string>
     <string name="title_summarize">Summarize</string>
     <string name="title_action_items">Action items</string>
-    <string name="title_action_items">Action items</string>
     <string name="title_openai" translatable="false">OpenAI (ChatGPT)</string>
     <string name="title_translate_configure">Configure &#8230;</string>
     <string name="title_translate_key">Enter key</string>
