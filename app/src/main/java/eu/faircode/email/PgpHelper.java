@@ -39,7 +39,9 @@ import org.openintents.openpgp.util.OpenPgpServiceConnection;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -104,6 +106,39 @@ public class PgpHelper {
         }
 
         return false;
+    }
+
+    static Map<String, Integer> queryAutocryptStatus(Context context, List<Address> recipients, long timeout) {
+        Map<String, Integer> results = new HashMap<>();
+        if (recipients == null || recipients.isEmpty()) {
+            return results;
+        }
+
+        String[] userIds = new String[recipients.size()];
+        for (int i = 0; i < recipients.size(); i++) {
+            userIds[i] = ((InternetAddress) recipients.get(i)).getAddress();
+        }
+
+        Intent intent = new Intent(OpenPgpApi.ACTION_QUERY_AUTOCRYPT_STATUS);
+        intent.putExtra(OpenPgpApi.EXTRA_USER_IDS, userIds);
+
+        try {
+            Intent result = execute(context, intent, null, null, timeout);
+            if (result.getIntExtra(OpenPgpApi.RESULT_CODE, OpenPgpApi.RESULT_CODE_ERROR) == OpenPgpApi.RESULT_CODE_SUCCESS) {
+                if (result.hasExtra(OpenPgpApi.RESULT_AUTOCRYPT_STATUS)) {
+                    int[] statuses = result.getIntArrayExtra(OpenPgpApi.RESULT_AUTOCRYPT_STATUS);
+                    for (int i = 0; i < userIds.length; i++) {
+                        results.put(userIds[i], statuses[i]);
+                    }
+                }
+            }
+        } catch (OperationCanceledException ignored) {
+            // Do nothing
+        } catch (Throwable ex) {
+            Log.w(ex);
+        }
+
+        return results;
     }
 
     private static String getResultName(int code) {
@@ -178,5 +213,42 @@ public class PgpHelper {
             Log.e(ex);
             return false;
         }
+    }
+
+    static List<byte[]> exportKeys(Context context, List<Address> recipients) {
+        List<byte[]> keys = new ArrayList<>();
+        if (recipients == null || recipients.isEmpty()) {
+            return keys;
+        }
+
+        String[] userIds = new String[recipients.size()];
+        for (int i = 0; i < recipients.size(); i++) {
+            userIds[i] = ((InternetAddress) recipients.get(i)).getAddress();
+        }
+
+        Intent keyIdsIntent = new Intent(OpenPgpApi.ACTION_GET_KEY_IDS);
+        keyIdsIntent.putExtra(OpenPgpApi.EXTRA_USER_IDS, userIds);
+        Intent keyIdsResult = execute(context, keyIdsIntent, null, null);
+
+        if (keyIdsResult.getIntExtra(OpenPgpApi.RESULT_CODE, RESULT_CODE_ERROR) == RESULT_CODE_SUCCESS) {
+            long[] keyIds = keyIdsResult.getLongArrayExtra(OpenPgpApi.EXTRA_KEY_IDS);
+            if (keyIds != null) {
+                for (long keyId : keyIds) {
+                    Intent keyIntent = new Intent(OpenPgpApi.ACTION_GET_KEY);
+                    keyIntent.putExtra(OpenPgpApi.EXTRA_KEY_ID, keyId);
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    try {
+                        Intent keyResult = execute(context, keyIntent, null, baos);
+                        if (keyResult.getIntExtra(OpenPgpApi.RESULT_CODE, RESULT_CODE_ERROR) == RESULT_CODE_SUCCESS) {
+                            keys.add(baos.toByteArray());
+                        }
+                    } catch (Throwable ex) {
+                        Log.w(ex);
+                    }
+                }
+            }
+        }
+        return keys;
     }
 }

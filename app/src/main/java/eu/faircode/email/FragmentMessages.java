@@ -304,7 +304,6 @@ public class FragmentMessages extends FragmentBase
     private TextView tvSelectedCount;
     private CardView cardMore;
     private ImageButton ibAnswer;
-    private ImageButton ibSummarize;
     private ImageButton ibBatchSeen;
     private ImageButton ibBatchUnseen;
     private ImageButton ibBatchSnooze;
@@ -660,7 +659,6 @@ public class FragmentMessages extends FragmentBase
         tvSelectedCount = view.findViewById(R.id.tvSelectedCount);
         cardMore = view.findViewById(R.id.cardMore);
         ibAnswer = view.findViewById(R.id.ibAnswer);
-        ibSummarize = view.findViewById(R.id.ibSummarize);
         ibBatchSeen = view.findViewById(R.id.ibBatchSeen);
         ibBatchUnseen = view.findViewById(R.id.ibBatchUnseen);
         ibBatchSnooze = view.findViewById(R.id.ibBatchSnooze);
@@ -1652,17 +1650,6 @@ public class FragmentMessages extends FragmentBase
                 if (result == null || result.single == null || !result.single.content)
                     return;
                 onReply(result.single, null, v);
-            }
-        });
-
-        ibSummarize.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MoreResult result = (MoreResult) cardMore.getTag();
-                if (result == null || result.single == null || !result.single.content)
-                    return;
-
-                FragmentDialogSummarize.summarize(result.single, getParentFragmentManager(), ibSummarize, getViewLifecycleOwner(), null);
             }
         });
 
@@ -4738,6 +4725,12 @@ public class FragmentMessages extends FragmentBase
                     popupMenu.getMenu().add(Menu.FIRST, R.string.title_search_sender, order++, R.string.title_search_sender)
                             .setIcon(R.drawable.twotone_search_24);
 
+                popupMenu.getMenu().add(Menu.NONE, 8001, order++, "Assign")
+                        .setIcon(R.drawable.twotone_person_add_24);
+                popupMenu.getMenu().add(Menu.NONE, 8002, order++, "Set Status")
+                        .setIcon(R.drawable.twotone_label_24);
+
+
                 popupMenu.insertIcons(context);
 
                 popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -4746,6 +4739,12 @@ public class FragmentMessages extends FragmentBase
                         int itemId = target.getItemId();
                         if (itemId == R.string.title_seen) {
                             onActionSeenSelection(true, null, false);
+                            return true;
+                        } else if (itemId == 8001) {
+                            onActionAssign();
+                            return true;
+                        } else if (itemId == 8002) {
+                            onActionSetStatus();
                             return true;
                         } else if (itemId == R.string.title_unseen) {
                             onActionSeenSelection(false, null, false);
@@ -7592,11 +7591,6 @@ public class FragmentMessages extends FragmentBase
                         if (seen)
                             count++;
 
-                        boolean summarize = (more_summarize && count < FragmentDialogQuickActions.MAX_QUICK_ACTIONS &&
-                                result.single != null && result.single.content);
-                        if (summarize)
-                            count++;
-
                         boolean answer = (more_answer && count < FragmentDialogQuickActions.MAX_QUICK_ACTIONS &&
                                 result.single != null && result.single.content);
 
@@ -7604,7 +7598,6 @@ public class FragmentMessages extends FragmentBase
                         ibInbox.setImageResource(inJunk ? R.drawable.twotone_report_off_24 : R.drawable.twotone_inbox_24);
 
                         ibAnswer.setVisibility(answer ? View.VISIBLE : View.GONE);
-                        ibSummarize.setVisibility(summarize ? VISIBLE : GONE);
                         ibBatchSeen.setVisibility(seen ? View.VISIBLE : View.GONE);
                         ibBatchUnseen.setVisibility(unseen ? View.VISIBLE : View.GONE);
                         ibBatchSnooze.setVisibility(snooze ? View.VISIBLE : View.GONE);
@@ -11241,6 +11234,78 @@ public class FragmentMessages extends FragmentBase
                 Log.unexpectedError(getParentFragmentManager(), ex);
             }
         }.execute(this, args, "prompt");
+    }
+
+    private void onActionAssign() {
+        final String[] users = {"User 1", "User 2", "User 3"}; // Hardcoded for now
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Assign to");
+        builder.setItems(users, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String selectedUser = users[which];
+                long[] ids = getSelection();
+                if (ids.length > 0) {
+                    Bundle args = new Bundle();
+                    args.putString("assignee", selectedUser);
+                    args.putLongArray("ids", ids);
+                    new SimpleTask<Void>() {
+                        @Override
+                        protected Void onExecute(Context context, Bundle args) {
+                            DB db = DB.getInstance(context);
+                            String assignee = args.getString("assignee");
+                            long[] ids = args.getLongArray("ids");
+                            for (long id : ids) {
+                                db.message().setMessageAssignee(id, assignee);
+                            }
+                            return null;
+                        }
+                    }.execute(FragmentMessages.this, args, "messages:assign");
+                }
+            }
+        });
+        builder.show();
+    }
+
+    private void onActionSetStatus() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Set Status");
+
+        final android.widget.EditText input = new android.widget.EditText(getContext());
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String status = input.getText().toString();
+                long[] ids = getSelection();
+                if (ids.length > 0) {
+                    Bundle args = new Bundle();
+                    args.putString("status", status);
+                    args.putLongArray("ids", ids);
+                    new SimpleTask<Void>() {
+                        @Override
+                        protected Void onExecute(Context context, Bundle args) {
+                            DB db = DB.getInstance(context);
+                            String status = args.getString("status");
+                            long[] ids = args.getLongArray("ids");
+                            for (long id : ids) {
+                                db.message().setMessageStatus(id, status);
+                            }
+                            return null;
+                        }
+                    }.execute(FragmentMessages.this, args, "messages:status");
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
     }
 
     private void onMoveAskAcross(final ArrayList<MessageTarget> result) {

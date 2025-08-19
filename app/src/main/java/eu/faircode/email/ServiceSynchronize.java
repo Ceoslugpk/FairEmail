@@ -195,6 +195,7 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     static final int PI_WATCHDOG = 6;
     static final int PI_UNSNOOZE = 7;
     static final int PI_EXISTS = 8;
+    static final int PI_RECURRING_SEND = 9;
 
     @Override
     public void onCreate() {
@@ -1188,6 +1189,10 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                         onUnsnooze(intent);
                         break;
 
+                    case "recurring_send":
+                        onRecurringSend(intent);
+                        break;
+
                     case "exists":
                         onExists(intent);
                         break;
@@ -1283,6 +1288,31 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                 EntityLog.log(this, EntityLog.Type.Scheduling,
                         "### waking up failed account=" + account);
         }
+    }
+
+    private void onRecurringSend(Intent intent) {
+        String action = intent.getAction();
+        long id = Long.parseLong(action.split(":")[1]);
+
+        Helper.getSerialExecutor().submit(new RunnableEx("recurring_send") {
+            @Override
+            public void delegate() {
+                try {
+                    DB db = DB.getInstance(ServiceSynchronize.this);
+                    EntityMessage message = db.message().getMessage(id);
+                    if (message == null)
+                        return;
+
+                    Log.i("Recurring send id=" + message.id);
+                    // Re-queue a send operation. A better implementation would copy the message.
+                    EntityOperation.queue(ServiceSynchronize.this, message, EntityOperation.SEND);
+
+                    ServiceSend.start(ServiceSynchronize.this);
+                } catch (Throwable ex) {
+                    Log.e(ex);
+                }
+            }
+        });
     }
 
     private void onUnsnooze(Intent intent) {

@@ -41,14 +41,42 @@ public class AI {
     static final int MAX_SUMMARIZE_TEXT_SIZE = 4 * 1024;
 
     static boolean isAvailable(Context context) {
-        return (OpenAI.isAvailable(context) || Gemini.isAvailable(context));
+        return (Gemini.isAvailable(context) || OpenAI.isAvailable(context));
     }
 
     @NonNull
     static Spanned completeChat(Context context, long id, boolean system, CharSequence body, String reply, String prompt) throws JSONException, IOException {
         StringBuilder sb = new StringBuilder();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        if (OpenAI.isAvailable(context)) {
+        if (Gemini.isAvailable(context)) {
+            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
+            String defaultPrompt = prefs.getString("gemini_answer", Gemini.DEFAULT_ANSWER_PROMPT);
+
+            List<Gemini.Message> messages = new ArrayList<>();
+
+            messages.add(new Gemini.Message(Gemini.USER, new String[]{prompt == null ? defaultPrompt : prompt}));
+
+            if (!TextUtils.isEmpty(body))
+                messages.add(new Gemini.Message(Gemini.USER,
+                        new String[]{Gemini.truncateParagraphs(body.toString())}));
+
+            if (!TextUtils.isEmpty(reply))
+                messages.add(new Gemini.Message(Gemini.USER,
+                        new String[]{Gemini.truncateParagraphs(reply)}));
+
+            Gemini.Message[] completions = Gemini.generate(context,
+                    model, messages.toArray(new Gemini.Message[0]), temperature, 1);
+
+            for (Gemini.Message completion : completions)
+                for (String result : completion.getContent()) {
+                    if (sb.length() > 0)
+                        sb.append('\n');
+                    sb.append(result
+                            .replaceAll("^\\n+", "")
+                            .replaceAll("\\n+$", ""));
+                }
+        } else if (OpenAI.isAvailable(context)) {
             String model = prefs.getString("openai_model", OpenAI.DEFAULT_MODEL);
             float temperature = prefs.getFloat("openai_temperature", OpenAI.DEFAULT_TEMPERATURE);
             boolean multimodal = prefs.getBoolean("openai_multimodal", false);
@@ -95,34 +123,6 @@ public class AI {
                                 .replaceAll("^\\n+", "")
                                 .replaceAll("\\n+$", ""));
                     }
-        } else if (Gemini.isAvailable(context)) {
-            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
-            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
-            String defaultPrompt = prefs.getString("gemini_answer", Gemini.DEFAULT_ANSWER_PROMPT);
-
-            List<Gemini.Message> messages = new ArrayList<>();
-
-            messages.add(new Gemini.Message(Gemini.USER, new String[]{prompt == null ? defaultPrompt : prompt}));
-
-            if (!TextUtils.isEmpty(body))
-                messages.add(new Gemini.Message(Gemini.USER,
-                        new String[]{Gemini.truncateParagraphs(body.toString())}));
-
-            if (!TextUtils.isEmpty(reply))
-                messages.add(new Gemini.Message(Gemini.USER,
-                        new String[]{Gemini.truncateParagraphs(reply)}));
-
-            Gemini.Message[] completions = Gemini.generate(context,
-                    model, messages.toArray(new Gemini.Message[0]), temperature, 1);
-
-            for (Gemini.Message completion : completions)
-                for (String result : completion.getContent()) {
-                    if (sb.length() > 0)
-                        sb.append('\n');
-                    sb.append(result
-                            .replaceAll("^\\n+", "")
-                            .replaceAll("\\n+$", ""));
-                }
         } else
             throw new IllegalArgumentException("No AI available");
 
@@ -133,25 +133,172 @@ public class AI {
 
     static String getDefaultPrompt(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        if (OpenAI.isAvailable(context))
-            return prefs.getString("openai_answer", OpenAI.DEFAULT_ANSWER_PROMPT);
-        else if (Gemini.isAvailable(context))
+        if (Gemini.isAvailable(context))
             return prefs.getString("gemini_answer", Gemini.DEFAULT_ANSWER_PROMPT);
+        else if (OpenAI.isAvailable(context))
+            return prefs.getString("openai_answer", OpenAI.DEFAULT_ANSWER_PROMPT);
         else
             return null;
     }
 
     static String getSummarizePrompt(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        if (OpenAI.isAvailable(context))
-            return prefs.getString("openai_summarize", OpenAI.DEFAULT_SUMMARY_PROMPT);
-        else if (Gemini.isAvailable(context))
+        if (Gemini.isAvailable(context))
             return prefs.getString("gemini_summarize", Gemini.DEFAULT_SUMMARY_PROMPT);
+        else if (OpenAI.isAvailable(context))
+            return prefs.getString("openai_summarize", OpenAI.DEFAULT_SUMMARY_PROMPT);
         else
             return context.getString(R.string.title_summarize);
     }
 
+    static String getActionItemsPrompt(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        if (Gemini.isAvailable(context))
+            return prefs.getString("gemini_action_items", Gemini.DEFAULT_ACTION_ITEMS_PROMPT);
+        else if (OpenAI.isAvailable(context))
+            return prefs.getString("openai_action_items", OpenAI.DEFAULT_ACTION_ITEMS_PROMPT);
+        else
+            return context.getString(R.string.title_action_items);
+    }
+
     static Spanned getSummaryText(Context context, EntityMessage message, long template, String prompt) throws JSONException, IOException {
+        return getText(context, message, template, prompt, "summarize");
+    }
+
+    static Spanned getActionItemsText(Context context, EntityMessage message, long template, String prompt) throws JSONException, IOException {
+        return getText(context, message, template, prompt, "action_items");
+    }
+
+    static String getSmartReplyPrompt(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        if (Gemini.isAvailable(context))
+            return prefs.getString("gemini_smart_reply", Gemini.DEFAULT_SMART_REPLY_PROMPT);
+        else if (OpenAI.isAvailable(context))
+            return prefs.getString("openai_smart_reply", OpenAI.DEFAULT_SMART_REPLY_PROMPT);
+        else
+            return "Smart reply";
+    }
+
+    static List<String> getSmartReplies(Context context, EntityMessage message) throws JSONException, IOException {
+        File file = message.getFile(context);
+        if (!file.exists())
+            return null;
+
+        Document d = JsoupEx.parse(file);
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean remove_signatures = prefs.getBoolean("remove_signatures", false);
+        if (remove_signatures)
+            HtmlHelper.removeSignatures(d);
+
+        d = HtmlHelper.sanitizeView(context, d, false);
+
+        HtmlHelper.truncate(d, MAX_SUMMARIZE_TEXT_SIZE);
+
+        String body = d.body().text().trim();
+        if (TextUtils.isEmpty(body))
+            return null;
+
+        List<String> replies = new ArrayList<>();
+        if (Gemini.isAvailable(context)) {
+            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
+            String defaultPrompt = prefs.getString("gemini_smart_reply", Gemini.DEFAULT_SMART_REPLY_PROMPT);
+
+            List<String> texts = new ArrayList<>();
+            texts.add(defaultPrompt);
+            texts.add(body);
+            Gemini.Message content = new Gemini.Message(Gemini.USER, texts.toArray(new String[0]));
+
+            Gemini.Message[] completions =
+                    Gemini.generate(context, model, new Gemini.Message[]{content}, temperature, 1);
+
+            if (completions.length > 0) {
+                String json = completions[0].getContent()[0];
+                JSONArray array = new JSONArray(json);
+                for (int i = 0; i < array.length(); i++)
+                    replies.add(array.getString(i));
+            }
+        } else if (OpenAI.isAvailable(context)) {
+            String model = prefs.getString("openai_model", OpenAI.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("openai_temperature", OpenAI.DEFAULT_TEMPERATURE);
+            String defaultPrompt = prefs.getString("openai_smart_reply", OpenAI.DEFAULT_SMART_REPLY_PROMPT);
+
+            List<String> contents = new ArrayList<>();
+            contents.add(defaultPrompt);
+            contents.add(body);
+            OpenAI.Message input = new OpenAI.Message(OpenAI.USER, new OpenAI.Content[]{
+                    new OpenAI.Content(OpenAI.CONTENT_TEXT, TextUtils.join("\n", contents))});
+
+            OpenAI.Message[] completions =
+                    OpenAI.completeChat(context, model, new OpenAI.Message[]{input}, temperature, 1);
+
+            if (completions.length > 0) {
+                String json = completions[0].getContent()[0].getContent();
+                JSONArray array = new JSONArray(json);
+                for (int i = 0; i < array.length(); i++)
+                    replies.add(array.getString(i));
+            }
+        } else
+            throw new IllegalArgumentException("No AI available");
+
+        return replies;
+    }
+
+    static String getSearchPrompt(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        if (Gemini.isAvailable(context))
+            return prefs.getString("gemini_search", Gemini.DEFAULT_SEARCH_PROMPT);
+        else if (OpenAI.isAvailable(context))
+            return prefs.getString("openai_search", OpenAI.DEFAULT_SEARCH_PROMPT);
+        else
+            return "Search";
+    }
+
+    static BoundaryCallbackMessages.SearchCriteria getSearchQuery(Context context, String query) throws JSONException, IOException {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        if (Gemini.isAvailable(context)) {
+            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
+            String defaultPrompt = prefs.getString("gemini_search", Gemini.DEFAULT_SEARCH_PROMPT);
+
+            List<String> texts = new ArrayList<>();
+            texts.add(String.format(defaultPrompt, new Date().toString()));
+            texts.add(query);
+            Gemini.Message content = new Gemini.Message(Gemini.USER, texts.toArray(new String[0]));
+
+            Gemini.Message[] completions =
+                    Gemini.generate(context, model, new Gemini.Message[]{content}, temperature, 1);
+
+            if (completions.length > 0) {
+                String json = completions[0].getContent()[0];
+                return BoundaryCallbackMessages.SearchCriteria.fromJsonData(new JSONObject(json));
+            }
+        } else if (OpenAI.isAvailable(context)) {
+            String model = prefs.getString("openai_model", OpenAI.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("openai_temperature", OpenAI.DEFAULT_TEMPERATURE);
+            String defaultPrompt = prefs.getString("openai_search", OpenAI.DEFAULT_SEARCH_PROMPT);
+
+            List<String> contents = new ArrayList<>();
+            contents.add(String.format(defaultPrompt, new Date().toString()));
+            contents.add(query);
+            OpenAI.Message input = new OpenAI.Message(OpenAI.USER, new OpenAI.Content[]{
+                    new OpenAI.Content(OpenAI.CONTENT_TEXT, TextUtils.join("\n", contents))});
+
+            OpenAI.Message[] completions =
+                    OpenAI.completeChat(context, model, new OpenAI.Message[]{input}, temperature, 1);
+
+            if (completions.length > 0) {
+                String json = completions[0].getContent()[0].getContent();
+                return BoundaryCallbackMessages.SearchCriteria.fromJsonData(new JSONObject(json));
+            }
+        } else
+            throw new IllegalArgumentException("No AI available");
+
+        return null;
+    }
+
+    private static Spanned getText(Context context, EntityMessage message, long template, String prompt, String type) throws JSONException, IOException {
         File file = message.getFile(context);
         if (!file.exists())
             return null;
@@ -182,10 +329,38 @@ public class AI {
         }
 
         StringBuilder sb = new StringBuilder();
-        if (OpenAI.isAvailable(context)) {
+        if (Gemini.isAvailable(context)) {
+            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
+            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
+            String defaultPrompt;
+            if ("action_items".equals(type))
+                defaultPrompt = prefs.getString("gemini_action_items", Gemini.DEFAULT_ACTION_ITEMS_PROMPT);
+            else
+                defaultPrompt = prefs.getString("gemini_summarize", Gemini.DEFAULT_SUMMARY_PROMPT);
+
+            List<String> texts = new ArrayList<>();
+            texts.add(templatePrompt == null ? defaultPrompt : templatePrompt);
+            if (!TextUtils.isEmpty(body))
+                texts.add(body);
+            Gemini.Message content = new Gemini.Message(Gemini.USER, texts.toArray(new String[0]));
+
+            Gemini.Message[] completions =
+                    Gemini.generate(context, model, new Gemini.Message[]{content}, temperature, 1);
+
+            for (Gemini.Message completion : completions)
+                for (String result : completion.getContent()) {
+                    if (sb.length() != 0)
+                        sb.append('\n');
+                    sb.append(result);
+                }
+        } else if (OpenAI.isAvailable(context)) {
             String model = prefs.getString("openai_model", OpenAI.DEFAULT_MODEL);
             float temperature = prefs.getFloat("openai_temperature", OpenAI.DEFAULT_TEMPERATURE);
-            String defaultPrompt = prefs.getString("openai_summarize", OpenAI.DEFAULT_SUMMARY_PROMPT);
+            String defaultPrompt;
+            if ("action_items".equals(type))
+                defaultPrompt = prefs.getString("openai_action_items", OpenAI.DEFAULT_ACTION_ITEMS_PROMPT);
+            else
+                defaultPrompt = prefs.getString("openai_summarize", OpenAI.DEFAULT_SUMMARY_PROMPT);
             boolean multimodal = prefs.getBoolean("openai_multimodal", false);
 
             List<OpenAI.Message> input = new ArrayList<>();
@@ -216,26 +391,6 @@ public class AI {
                             sb.append('\n');
                         sb.append(content.getContent());
                     }
-        } else if (Gemini.isAvailable(context)) {
-            String model = prefs.getString("gemini_model", Gemini.DEFAULT_MODEL);
-            float temperature = prefs.getFloat("gemini_temperature", Gemini.DEFAULT_TEMPERATURE);
-            String defaultPrompt = prefs.getString("gemini_summarize", Gemini.DEFAULT_SUMMARY_PROMPT);
-
-            List<String> texts = new ArrayList<>();
-            texts.add(templatePrompt == null ? defaultPrompt : templatePrompt);
-            if (!TextUtils.isEmpty(body))
-                texts.add(body);
-            Gemini.Message content = new Gemini.Message(Gemini.USER, texts.toArray(new String[0]));
-
-            Gemini.Message[] completions =
-                    Gemini.generate(context, model, new Gemini.Message[]{content}, temperature, 1);
-
-            for (Gemini.Message completion : completions)
-                for (String result : completion.getContent()) {
-                    if (sb.length() != 0)
-                        sb.append('\n');
-                    sb.append(result);
-                }
         } else
             throw new IllegalArgumentException("No AI available");
 

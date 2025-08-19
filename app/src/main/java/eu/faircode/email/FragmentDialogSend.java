@@ -751,21 +751,36 @@ public class FragmentDialogSend extends FragmentDialogBase {
             Bundle data = intent.getBundleExtra("args");
             long id = data.getLong("id");
             long time = data.getLong("time");
+            String recurrenceRule = data.getString("recurrence_rule");
 
             getArguments().putLong("sendAt", time);
+            if (recurrenceRule != null)
+                getArguments().putString("recurrence_rule", recurrenceRule);
+            else
+                getArguments().remove("recurrence_rule");
 
             Bundle args = new Bundle();
             args.putLong("id", id);
             args.putLong("time", time);
+            if (recurrenceRule != null)
+                args.putString("recurrence_rule", recurrenceRule);
 
             new SimpleTask<Void>() {
                 @Override
                 protected Void onExecute(Context context, Bundle args) {
                     long id = args.getLong("id");
                     long time = args.getLong("time");
+                    String recurrenceRule = args.getString("recurrence_rule");
 
                     DB db = DB.getInstance(context);
-                    db.message().setMessageSnoozed(id, time);
+                    db.beginTransaction();
+                    try {
+                        db.message().setMessageSnoozed(id, time);
+                        db.message().setMessageRecurrenceRule(id, recurrenceRule);
+                        db.setTransactionSuccessful();
+                    } finally {
+                        db.endTransaction();
+                    }
 
                     return null;
                 }

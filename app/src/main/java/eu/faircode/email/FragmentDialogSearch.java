@@ -98,6 +98,7 @@ public class FragmentDialogSearch extends FragmentDialogBase {
         final Button btnSearch1 = dview.findViewById(R.id.btnSearch1);
         final Button btnSearch2 = dview.findViewById(R.id.btnSearch2);
         final Button btnSearch3 = dview.findViewById(R.id.btnSearch3);
+        final ImageButton ibAiSearch = dview.findViewById(R.id.ibAiSearch);
         final ImageButton ibResetSearches = dview.findViewById(R.id.ibResetSearches);
 
         final ImageButton ibInfo = dview.findViewById(R.id.ibInfo);
@@ -250,6 +251,54 @@ public class FragmentDialogSearch extends FragmentDialogBase {
         }
 
         ibResetSearches.setVisibility(searches > 0 ? View.VISIBLE : View.GONE);
+
+        ibAiSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query = etQuery.getText().toString().trim();
+                if (TextUtils.isEmpty(query))
+                    return;
+
+                new SimpleTask<BoundaryCallbackMessages.SearchCriteria>() {
+                    @Override
+                    protected BoundaryCallbackMessages.SearchCriteria onExecute(Context context, Bundle args) throws Throwable {
+                        return AI.getSearchQuery(context, query);
+                    }
+
+                    @Override
+                    protected void onExecuted(Bundle args, BoundaryCallbackMessages.SearchCriteria criteria) {
+                        if (criteria == null)
+                            return;
+
+                        etQuery.setText(criteria.query);
+                        cbSenders.setChecked(criteria.in_senders);
+                        cbRecipients.setChecked(criteria.in_recipients);
+                        cbSubject.setChecked(criteria.in_subject);
+                        cbUnseen.setChecked(criteria.with_unseen);
+                        cbFlagged.setChecked(criteria.with_flagged);
+
+                        if (criteria.after != null) {
+                            Calendar cal = Calendar.getInstance();
+                            cal.setTimeInMillis(criteria.after);
+                            tvAfter.setTag(cal);
+                            tvAfter.setText(DateFormat.getDateInstance().format(cal.getTime()));
+                        }
+
+                        if (criteria.before != null) {
+                            Calendar cal = Calendar.getInstance();
+                            cal.setTimeInMillis(criteria.before);
+                            tvBefore.setTag(cal);
+                            tvBefore.setText(DateFormat.getDateInstance().format(cal.getTime()));
+                        }
+                    }
+
+                    @Override
+                    protected void onException(Bundle args, Throwable ex) {
+                        ToastEx.makeText(context, ex.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }.execute(getContext(), getViewLifecycleOwner(), new Bundle(), "ai:search");
+            }
+        });
 
         ibResetSearches.setOnClickListener(new View.OnClickListener() {
             @Override

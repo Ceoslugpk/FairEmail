@@ -525,6 +525,7 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
         private ImageButton ibMoveBottom;
         private ImageButton ibSeenBottom;
         private Flow flow;
+        private Flow flowSuggestions;
 
         private ImageButton ibCalendar;
         private ImageButton ibOnline;
@@ -1000,6 +1001,7 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
             ibMoveBottom = vsBody.findViewById(R.id.ibMoveBottom);
             ibSeenBottom = vsBody.findViewById(R.id.ibSeenBottom);
             flow = vsBody.findViewById(R.id.flow);
+            flowSuggestions = vsBody.findViewById(R.id.flowSuggestions);
 
             ibStoreMedia = vsBody.findViewById(R.id.ibStoreMedia);
             ibShareImages = vsBody.findViewById(R.id.ibShareImages);
@@ -2309,6 +2311,60 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
 
             // Setup actions
             setupTools(message, scroll, true);
+
+            bindSuggestions(message);
+        }
+
+        private void bindSuggestions(TupleMessageEx message) {
+            new SimpleTask<List<String>>() {
+                @Override
+                protected List<String> onExecute(Context context, Bundle args) throws Throwable {
+                    return AI.getSmartReplies(context, message);
+                }
+
+                @Override
+                protected void onExecuted(Bundle args, List<String> replies) {
+                    if (replies == null || replies.isEmpty()) {
+                        vsBody.findViewById(R.id.grpSuggestions).setVisibility(View.GONE);
+                        return;
+                    }
+
+                    vsBody.findViewById(R.id.grpSuggestions).setVisibility(View.VISIBLE);
+
+                    ConstraintLayout cl = (ConstraintLayout) flowSuggestions.getParent();
+                    for (int id : flowSuggestions.getReferencedIds()) {
+                        View v = cl.findViewById(id);
+                        cl.removeView(v);
+                    }
+                    flowSuggestions.setReferencedIds(new int[0]);
+
+                    for (String reply : replies) {
+                        Button button = new Button(context, null, android.R.attr.buttonStyleSmall);
+                        button.setId(View.generateViewId());
+                        button.setText(reply);
+                        button.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent intent = new Intent(context, ActivityCompose.class)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                        .putExtra("action", "reply")
+                                        .putExtra("reference", message.id)
+                                        .putExtra("body", reply);
+                                context.startActivity(intent);
+                            }
+                        });
+
+                        cl.addView(button);
+                        flowSuggestions.addView(button);
+                    }
+                }
+
+                @Override
+                protected void onException(Bundle args, Throwable ex) {
+                    Log.e(ex);
+                    vsBody.findViewById(R.id.grpSuggestions).setVisibility(View.GONE);
+                }
+            }.execute(context, owner, new Bundle(), "ai:suggestions");
         }
 
         private void setupTools(final TupleMessageEx message, final boolean scroll, final boolean bind) {
@@ -6484,6 +6540,8 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
                     DeepL.isAvailable(context) && message.content);
             popupMenu.getMenu().findItem(R.id.menu_summarize).setVisible(
                     AI.isAvailable(context) && message.content);
+            popupMenu.getMenu().findItem(R.id.menu_action_items).setVisible(
+                    AI.isAvailable(context) && message.content);
 
             popupMenu.getMenu().findItem(R.id.menu_force_light).setVisible(dark && (full || experiments));
             popupMenu.getMenu().findItem(R.id.menu_force_light).setChecked(force_light);
@@ -6596,6 +6654,9 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
                         return true;
                     } else if (itemId == R.id.menu_summarize) {
                         onActionSummarize(message, null, null);
+                        return true;
+                    } else if (itemId == R.id.menu_action_items) {
+                        onActionSummarize(message, null, "action");
                         return true;
                     } else if (itemId == R.id.menu_force_light) {
                         onActionForceLight(message);

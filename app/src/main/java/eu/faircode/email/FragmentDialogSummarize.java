@@ -96,9 +96,13 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
         long template = args.getLong("template");
         String prompt = args.getString("prompt");
 
+        String type = args.getString("type");
         if (prompt == null)
             if (template <= 0)
-                tvCaption.setText(AI.getSummarizePrompt(context));
+                if ("action_items".equals(type))
+                    tvCaption.setText(AI.getActionItemsPrompt(context));
+                else
+                    tvCaption.setText(AI.getSummarizePrompt(context));
             else {
                 tvCaption.setText(null);
                 new SimpleTask<String>() {
@@ -152,6 +156,7 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
             protected Spanned onExecute(Context context, Bundle args) throws Throwable {
                 long id = args.getLong("id");
                 long template = args.getLong("template");
+                String type = args.getString("type");
 
                 DB db = DB.getInstance(context);
                 EntityMessage message = db.message().getMessage(id);
@@ -159,7 +164,11 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
                     return null;
 
                 long start = new Date().getTime();
-                Spanned summary = AI.getSummaryText(context, message, template, prompt);
+                Spanned summary;
+                if ("action_items".equals(type))
+                    summary = AI.getActionItemsText(context, message, template, prompt);
+                else
+                    summary = AI.getSummaryText(context, message, template, prompt);
                 args.putLong("elapsed", new Date().getTime() - start);
 
                 return summary;
@@ -188,9 +197,9 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
         return builder.create();
     }
 
-    public static void summarize(EntityMessage message, FragmentManager fm, View anchor, LifecycleOwner owner, String prompt) {
+    public static void summarize(EntityMessage message, FragmentManager fm, View anchor, LifecycleOwner owner, String prompt, String type) {
         if (anchor == null || prompt != null) {
-            summarize(message, fm, null, prompt);
+            summarize(message, fm, null, prompt, type);
             return;
         }
 
@@ -228,7 +237,7 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
                             long id = item.getIntent().getLongExtra("id", -1L);
-                            summarize(message, fm, id, prompt);
+                            summarize(message, fm, id, prompt, type);
                             return true;
                         }
                     });
@@ -244,13 +253,14 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
         }.execute(context, owner, new Bundle(), "AI:select");
     }
 
-    private static void summarize(EntityMessage message, FragmentManager fm, Long template, String prompt) {
+    private static void summarize(EntityMessage message, FragmentManager fm, Long template, String prompt, String type) {
         Bundle args = new Bundle();
         args.putLong("id", message.id);
         args.putString("from", MessageHelper.formatAddresses(message.from));
         args.putString("subject", message.subject);
         args.putLong("template", template == null ? -1L : template);
         args.putString("prompt", prompt);
+        args.putString("type", type);
 
         FragmentDialogSummarize fragment = new FragmentDialogSummarize();
         fragment.setArguments(args);

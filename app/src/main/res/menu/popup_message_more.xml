@@ -92,6 +92,11 @@
             android:title="@string/title_summarize" />
 
         <item
+            android:id="@+id/menu_action_items"
+            android:icon="@drawable/twotone_checklist_24"
+            android:title="@string/title_action_items" />
+
+        <item
             android:id="@+id/menu_force_light"
             android:checkable="true"
             android:icon="@drawable/twotone_light_mode_24"

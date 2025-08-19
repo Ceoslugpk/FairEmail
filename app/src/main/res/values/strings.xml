@@ -931,6 +931,7 @@
     <string name="title_advanced_multi_modal">Multimodal</string>
     <string name="title_advanced_summarize_prompt">Summarize prompt</string>
     <string name="title_advanced_answer_prompt">Answer prompt</string>
+    <string name="title_advanced_search_prompt">Search prompt</string>
     <string name="title_advanced_system_instructions">System instructions</string>
     <string name="title_advanced_default_prompt">Default prompt</string>
     <string name="title_advanced_ai">AI</string>
@@ -1863,6 +1864,8 @@
     <string name="title_select_default_identity">Select default address</string>
     <string name="title_translate">Translate</string>
     <string name="title_summarize">Summarize</string>
+    <string name="title_action_items">Action items</string>
+    <string name="title_action_items">Action items</string>
     <string name="title_openai" translatable="false">OpenAI (ChatGPT)</string>
     <string name="title_translate_configure">Configure &#8230;</string>
     <string name="title_translate_key">Enter key</string>
@@ -2132,6 +2135,7 @@
     <string name="title_rule_silent">Silent notification</string>
     <string name="title_rule_summarize">Summarize</string>
     <string name="title_rule_summarize_remark">Summarize the message with configured AI integration</string>
+    <string name="title_suggestions">Suggestions</string>
 
     <string name="title_rule_caption">Edit rule</string>
     <string name="title_rule_title">Rule applies to</string>
@@ -2458,6 +2462,7 @@
     <string name="title_now">Now</string>
     <string name="title_after">After %1$s</string>
     <string name="title_reset">Reset</string>
+    <string name="title_repeat">Repeat</string>
     <string name="title_hours">Hours</string>
     <string name="title_minutes">Minutes</string>
     <string name="title_dismiss">Dismiss</string>
@@ -3021,6 +3026,13 @@
         <item>OPTIONS</item>
         <item>POST</item>
         <item>PUT</item>
+    </string-array>
+
+    <string-array name="recurrence_options">
+        <item>Doesn\'t repeat</item>
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Monthly</item>
     </string-array>
 
     <string name="fingerprint" translatable="false">17BA15C1AF55D925F98B99CEA4375D4CDF4C174B</string>

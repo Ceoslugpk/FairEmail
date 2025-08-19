@@ -197,6 +197,17 @@
             app:layout_constraintTop_toBottomOf="@id/etQuery" />
 
         <ImageButton
+            android:id="@+id/ibAiSearch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="3dp"
+            app:layout_constraintBottom_toBottomOf="@+id/btnSearch1"
+            app:layout_constraintEnd_toStartOf="@+id/ibResetSearches"
+            app:layout_constraintTop_toTopOf="@id/btnSearch1"
+            app:srcCompat="@drawable/twotone_smart_toy_24" />
+
+        <ImageButton
             android:id="@+id/ibResetSearches"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

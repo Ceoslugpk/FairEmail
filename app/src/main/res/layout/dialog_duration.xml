@@ -75,10 +75,31 @@
             app:layout_constraintTop_toBottomOf="@id/timePicker" />
 
         <TextView
+            android:id="@+id/tvRecurrenceLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:labelFor="@+id/spRecurrence"
+            android:text="@string/title_repeat"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/datePicker" />
+
+        <Spinner
+            android:id="@+id/spRecurrence"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/tvRecurrenceLabel"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/tvRecurrenceLabel"
+            app:layout_constraintTop_toTopOf="@id/tvRecurrenceLabel" />
+
+        <TextView
             android:id="@+id/tvSnoozeDoze"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="12dp"
             android:drawableEnd="@drawable/twotone_settings_24"
             android:drawablePadding="6dp"
             android:text="@string/title_snooze_doze"
@@ -86,6 +107,6 @@
             android:textStyle="italic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/datePicker" />
+            app:layout_constraintTop_toBottomOf="@id/spRecurrence" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

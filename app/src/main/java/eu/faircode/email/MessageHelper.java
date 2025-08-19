@@ -39,6 +39,9 @@ import android.text.style.ForegroundColorSpan;
 import android.util.Base64;
 import android.util.Pair;
 
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+
 import androidx.annotation.NonNull;
 import androidx.core.net.MailTo;
 import androidx.core.util.PatternsCompat;
@@ -613,6 +616,30 @@ public class MessageHelper {
                                             " keydata=" + sb.toString());
                         }
                     }
+
+            // Add Autocrypt-Gossip header
+            if (autocrypt && identity != null && send) {
+                List<Address> recipients = new ArrayList<>();
+                if (imessage.getRecipients(Message.RecipientType.TO) != null)
+                    recipients.addAll(Arrays.asList(imessage.getRecipients(Message.RecipientType.TO)));
+                if (imessage.getRecipients(Message.RecipientType.CC) != null)
+                    recipients.addAll(Arrays.asList(imessage.getRecipients(Message.RecipientType.CC)));
+                // BCC recipients are not gossiped about.
+
+                if (!recipients.isEmpty()) {
+                    List<byte[]> gossipKeys = PgpHelper.exportKeys(context, recipients);
+                    if (!gossipKeys.isEmpty()) {
+                        StringBuilder gossipHeader = new StringBuilder();
+                        for (byte[] key : gossipKeys) {
+                            if (gossipHeader.length() > 0) {
+                                gossipHeader.append(",\r\n "); // for folding
+                            }
+                            gossipHeader.append(Base64.encodeToString(key, Base64.NO_WRAP));
+                        }
+                        imessage.addHeader("Autocrypt-Gossip", gossipHeader.toString());
+                    }
+                }
+            }
 
             // PGP: https://tools.ietf.org/html/rfc3156
             // S/MIME: https://tools.ietf.org/html/rfc8551

@@ -45,6 +45,9 @@ public class Gemini {
     static final String DEFAULT_MODEL = "gemini-pro";
     static final float DEFAULT_TEMPERATURE = 0.9f;
     static final String DEFAULT_SUMMARY_PROMPT = "Summarize the following text:";
+    static final String DEFAULT_ACTION_ITEMS_PROMPT = "Extract action items from the following text:";
+    static final String DEFAULT_SEARCH_PROMPT = "Convert the following natural language query into a JSON object for searching emails. The JSON object should have the following keys: 'query', 'in_senders', 'in_recipients', 'in_subject', 'with_unseen', 'with_flagged', 'after', 'before'. The 'after' and 'before' keys should be dates in 'YYYY-MM-DD' format. The current date is %s. The query is:";
+    static final String DEFAULT_SMART_REPLY_PROMPT = "Based on the following email, suggest three short, relevant replies. Return them as a JSON array of strings. For example: [\"Reply 1\", \"Reply 2\", \"Reply 3\"]. The email is:";
     static final String DEFAULT_ANSWER_PROMPT = "Answer this message:";
 
     static final String MODEL = "model";

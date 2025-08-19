@@ -1642,10 +1642,36 @@ public class FragmentCompose extends FragmentBase {
                         if (bcc != null)
                             recipients.addAll(Arrays.asList(bcc));
 
-                        if (identity.encrypt == 0 && PgpHelper.hasPgpKey(context, recipients, true))
-                            draft.ui_encrypt = EntityMessage.PGP_SIGNENCRYPT;
-                        else if (identity.encrypt == 1 && SmimeHelper.hasSmimeKey(context, recipients, true))
+                        if (identity.encrypt == 0) { // PGP
+                            // Autocrypt: prefer-encrypt=mutual
+                            if (!recipients.isEmpty()) {
+                                List<Address> allAddresses = new ArrayList<>(recipients);
+                                allAddresses.add(new InternetAddress(identity.email));
+                                Map<String, Integer> statuses = PgpHelper.queryAutocryptStatus(context, allAddresses, 250L);
+                                Integer senderStatus = statuses.get(identity.email);
+
+                                if (senderStatus != null && (senderStatus & OpenPgpApi.AUTOCRYPT_STATUS_PREFER_ENCRYPT_MUTUAL) != 0) {
+                                    boolean encrypt = true;
+                                    for (Address recipient : recipients) {
+                                        Integer recipientStatus = statuses.get(((InternetAddress) recipient).getAddress());
+                                        if (recipientStatus == null || (recipientStatus & OpenPgpApi.AUTOCRYPT_STATUS_ENABLED) == 0) {
+                                            encrypt = false;
+                                            break;
+                                        }
+                                    }
+                                    if (encrypt) {
+                                        draft.ui_encrypt = EntityMessage.PGP_SIGNENCRYPT;
+                                    }
+                                }
+                            }
+
+                            // Fallback to checking for keys if not already decided
+                            if (draft.ui_encrypt == null && PgpHelper.hasPgpKey(context, recipients, true)) {
+                                draft.ui_encrypt = EntityMessage.PGP_SIGNENCRYPT;
+                            }
+                        } else if (identity.encrypt == 1 && SmimeHelper.hasSmimeKey(context, recipients, true)) { // SMIME
                             draft.ui_encrypt = EntityMessage.SMIME_SIGNENCRYPT;
+                        }
                     } catch (Throwable ex) {
                         Log.w(ex);
                     }
@@ -3446,6 +3472,8 @@ public class FragmentCompose extends FragmentBase {
                     Bundle args = data.getBundleExtra("args");
                     Bundle extras = new Bundle();
                     extras.putBoolean("archive", args.getBoolean("archive"));
+                    if (args.containsKey("recurrence_rule"))
+                        extras.putString("recurrence_rule", args.getString("recurrence_rule"));
                     if (resultCode == RESULT_OK)
                         onAction(R.id.action_send, extras, "send");
                     else if (resultCode == RESULT_FIRST_USER) {
@@ -7876,13 +7904,31 @@ public class FragmentCompose extends FragmentBase {
             if (dirty)
                 ServiceSynchronize.eval(context, "compose/action");
 
-            if (action == R.id.action_send)
+            if (action == R.id.action_send) {
+                String recurrenceRule = extras.getString("recurrence_rule");
                 if (draft.ui_snoozed == null)
                     ServiceSend.start(context);
-                else {
+                else if (recurrenceRule != null) {
+                    long interval = 0;
+                    if ("Daily".equals(recurrenceRule))
+                        interval = AlarmManager.INTERVAL_DAY;
+                    else if ("Weekly".equals(recurrenceRule))
+                        interval = AlarmManager.INTERVAL_DAY * 7;
+                    else if ("Monthly".equals(recurrenceRule))
+                        interval = AlarmManager.INTERVAL_DAY * 30; // Approximation
+
+                    if (interval > 0) {
+                        Log.i("Recurring send id=" + draft.id + " at " + new Date(draft.ui_snoozed) + " interval=" + interval);
+                        EntityMessage.scheduleRecurring(context, draft.id, draft.ui_snoozed, interval);
+                    } else { // Should not happen if rule is not null and one of the above
+                        Log.i("Delayed send id=" + draft.id + " at " + new Date(draft.ui_snoozed));
+                        EntityMessage.snooze(context, draft.id, draft.ui_snoozed);
+                    }
+                } else {
                     Log.i("Delayed send id=" + draft.id + " at " + new Date(draft.ui_snoozed));
                     EntityMessage.snooze(context, draft.id, draft.ui_snoozed);
                 }
+            }
 
             return draft;
         }

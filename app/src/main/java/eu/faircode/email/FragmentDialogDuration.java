@@ -32,8 +32,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -79,10 +81,16 @@ public class FragmentDialogDuration extends FragmentDialogBase {
         final TextView tvDuration = dview.findViewById(R.id.tvDuration);
         final TimePicker timePicker = dview.findViewById(R.id.timePicker);
         final DatePicker datePicker = dview.findViewById(R.id.datePicker);
+        final Spinner spRecurrence = dview.findViewById(R.id.spRecurrence);
         final TextView tvSnoozeDoze = dview.findViewById(R.id.tvSnoozeDoze);
 
         final int colorWarning = Helper.resolveColor(context, R.attr.colorWarning);
         final int textColorSecondary = Helper.resolveColor(context, android.R.attr.textColorSecondary);
+
+        final ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(context,
+                R.array.recurrence_options, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spRecurrence.setAdapter(adapter);
 
         if (savedInstanceState == null) {
             if (time == 0) {
@@ -96,6 +104,16 @@ public class FragmentDialogDuration extends FragmentDialogBase {
         } else
             cal.setTimeInMillis(savedInstanceState.getLong("fair:time"));
         Log.i("Set init=" + new Date(cal.getTimeInMillis()));
+
+        String recurrenceRule = args.getString("recurrence_rule");
+        if (recurrenceRule != null) {
+            for (int i = 0; i < adapter.getCount(); i++) {
+                if (recurrenceRule.equals(adapter.getItem(i).toString())) {
+                    spRecurrence.setSelection(i);
+                    break;
+                }
+            }
+        }
 
         final DateFormat DTF = Helper.getDateTimeInstance(context, SimpleDateFormat.FULL, SimpleDateFormat.SHORT);
         tvDuration.setText(DTF.format(cal.getTime()));
@@ -137,6 +155,13 @@ public class FragmentDialogDuration extends FragmentDialogBase {
                         args.putLong("duration", duration);
                         args.putLong("time", cal.getTimeInMillis());
 
+                        String selectedRule = spRecurrence.getSelectedItem().toString();
+                        if (!selectedRule.equals(adapter.getItem(0).toString())) {
+                            args.putString("recurrence_rule", selectedRule);
+                        } else {
+                            args.remove("recurrence_rule");
+                        }
+
                         sendResult(RESULT_OK);
                     }
                 })
@@ -148,6 +173,7 @@ public class FragmentDialogDuration extends FragmentDialogBase {
                         args.putBoolean("reset", true);
                         args.putLong("duration", 0);
                         args.putLong("time", new Date().getTime());
+                        args.remove("recurrence_rule");
 
                         sendResult(RESULT_OK);
                     }

@@ -991,6 +991,15 @@ public interface DaoMessage {
     @Query("UPDATE message SET ui_snoozed = :wakeup WHERE id = :id AND NOT (ui_snoozed IS :wakeup)")
     int setMessageSnoozed(long id, Long wakeup);
 
+    @Query("UPDATE message SET recurrence_rule = :recurrenceRule WHERE id = :id")
+    int setMessageRecurrenceRule(long id, String recurrenceRule);
+
+    @Query("UPDATE message SET assignee = :assignee WHERE id = :id")
+    int setMessageAssignee(long id, String assignee);
+
+    @Query("UPDATE message SET status = :status WHERE id = :id")
+    int setMessageStatus(long id, String status);
+
     @Query("UPDATE message SET ui_unsnoozed = :unsnoozed WHERE id = :id AND NOT (ui_unsnoozed IS :unsnoozed)")
     int setMessageUnsnoozed(long id, boolean unsnoozed);
 

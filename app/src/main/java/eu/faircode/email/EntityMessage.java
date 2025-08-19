@@ -90,7 +90,10 @@ import javax.mail.internet.InternetAddress;
                 @Index(value = {"ui_found"}),
                 @Index(value = {"ui_ignored"}),
                 @Index(value = {"ui_browsed"}),
-                @Index(value = {"ui_snoozed"})
+                @Index(value = {"ui_snoozed"}),
+                @Index(value = {"recurrence_rule"}),
+                @Index(value = {"assignee"}),
+                @Index(value = {"status"})
         }
 )
 public class EntityMessage implements Serializable {
@@ -253,6 +256,7 @@ public class EntityMessage implements Serializable {
     public Boolean ui_browsed = false;
     public Long ui_busy;
     public Long ui_snoozed;
+    public String recurrence_rule;
     @NonNull
     public Boolean ui_unsnoozed = false;
     @NonNull
@@ -266,6 +270,8 @@ public class EntityMessage implements Serializable {
     public String error; // volatile
     public Long last_attempt; // send
     public Long last_touched;
+    public String assignee;
+    public String status;
 
     static String generateMessageId() {
         return generateMessageId("localhost");
@@ -752,6 +758,31 @@ public class EntityMessage implements Serializable {
         }
     }
 
+    static void scheduleRecurring(Context context, long id, Long wakeup, long interval) {
+        if (wakeup != null && wakeup != Long.MAX_VALUE) {
+            DB db = DB.getInstance(context);
+            int count = db.message().getSnoozedCount();
+            Log.i("Snoozed=" + count + "/" + MAX_SNOOZED);
+            if (count > MAX_SNOOZED)
+                throw new IllegalArgumentException(
+                        String.format("Due to Android limitations, no more than %d messages can be snoozed or delayed", MAX_SNOOZED));
+        }
+
+        Intent recurring = new Intent(context, ServiceSynchronize.class);
+        recurring.setAction("recurring_send:" + id);
+        PendingIntent pi = PendingIntentCompat.getForegroundService(
+                context, ServiceSynchronize.PI_RECURRING_SEND, recurring, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = Helper.getSystemService(context, AlarmManager.class);
+        if (wakeup == null || wakeup == Long.MAX_VALUE) {
+            Log.i("Cancel recurring send id=" + id);
+            am.cancel(pi);
+        } else {
+            Log.i("Set recurring send id=" + id + " wakeup=" + new Date(wakeup) + " interval=" + interval);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, wakeup, interval, pi);
+        }
+    }
+
     static String getSwipeType(Long type) {
         if (type == null)
             return "none";
@@ -869,6 +900,7 @@ public class EntityMessage implements Serializable {
                     this.ui_browsed.equals(other.ui_browsed) &&
                     Objects.equals(this.ui_busy, other.ui_busy) &&
                     Objects.equals(this.ui_snoozed, other.ui_snoozed) &&
+                    Objects.equals(this.recurrence_rule, other.recurrence_rule) &&
                     this.ui_unsnoozed.equals(other.ui_unsnoozed) &&
                     this.show_images.equals(other.show_images) &&
                     this.show_full.equals(other.show_full) &&
@@ -877,7 +909,9 @@ public class EntityMessage implements Serializable {
                     Objects.equals(this.revisions, other.revisions) &&
                     Objects.equals(this.warning, other.warning) &&
                     Objects.equals(this.error, other.error) &&
-                    Objects.equals(this.last_attempt, other.last_attempt));
+                    Objects.equals(this.last_attempt, other.last_attempt) &&
+                    Objects.equals(this.assignee, other.assignee) &&
+                    Objects.equals(this.status, other.status));
         }
         return false;
     }

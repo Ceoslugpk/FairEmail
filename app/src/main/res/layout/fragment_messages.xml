@@ -741,20 +741,6 @@
                 app:tint="@color/action_foreground" />
 
             <ImageButton
-                android:id="@+id/ibSummarize"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/title_summarize"
-                android:padding="6dp"
-                android:scaleType="fitCenter"
-                android:tooltipText="@string/title_summarize"
-                app:layout_constraintEnd_toStartOf="@id/ibAnswer"
-                app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/twotone_smart_toy_24"
-                app:tint="@color/action_foreground" />
-
-            <ImageButton
                 android:id="@+id/ibBatchSeen"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -763,7 +749,7 @@
                 android:padding="6dp"
                 android:scaleType="fitCenter"
                 android:tooltipText="@string/title_seen"
-                app:layout_constraintEnd_toStartOf="@id/ibSummarize"
+                app:layout_constraintEnd_toStartOf="@id/ibAnswer"
                 app:layout_constraintTop_toTopOf="parent"
                 app:srcCompat="@drawable/twotone_drafts_24"
                 app:tint="@color/action_foreground" />
@@ -1008,7 +994,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_margin="@dimen/fab_padding"
-        android:contentDescription="@string/title_search_server"
+        android.contentDescription="@string/title_search_server"
         android:tooltipText="@string/title_search_server"
         app:backgroundTint="?attr/colorFabBackground"
         app:srcCompat="@drawable/twotone_youtube_searched_for_24"
