@@ -107,12 +107,12 @@ android {
         jvmTarget = '1.8'
     }
 
-//    externalNativeBuild {
-//        cmake {
-//            version = "3.22.1"
-//            path "CMakeLists.txt"
-//        }
-//    }
+    externalNativeBuild {
+        cmake {
+            version = "3.22.1"
+            path "CMakeLists.txt"
+        }
+    }
 
     dependenciesInfo {
         includeInApk = false
