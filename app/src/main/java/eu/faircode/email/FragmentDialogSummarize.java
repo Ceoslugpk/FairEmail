@@ -266,4 +266,24 @@ public class FragmentDialogSummarize extends FragmentDialogBase {
         fragment.setArguments(args);
         fragment.show(fm, "message:summary");
     }
+
+    // Back-compat overloads for existing call sites
+    public static void summarize(
+            EntityMessage message,
+            FragmentManager fm,
+            View anchor,
+            LifecycleOwner owner,
+            String prompt
+    ) {
+        summarize(message, fm, anchor, owner, prompt, /*model/provider*/ null);
+    }
+
+    public static void summarize(
+            EntityMessage message,
+            FragmentManager fm,
+            Long anchorId,
+            String prompt
+    ) {
+        summarize(message, fm, anchorId, prompt, /*model/provider*/ null);
+    }
 }

@@ -8031,14 +8031,15 @@ public class AdapterMessage extends RecyclerView.Adapter<AdapterMessage.ViewHold
         }
 
         private void onActionItems(TupleMessageEx message) {
-            new SimpleTask<String>() {
+            new SimpleTask<Spanned>() {
                 @Override
-                protected String onExecute(Context context, Bundle args) throws Throwable {
-                    return AI.getActionItems(context, message.getHtml(context));
+                protected Spanned onExecute(Context context, Bundle args) throws Throwable {
+                    // TODO: this is a pro feature
+                    return AI.getActionItemsText(context, message, -1L, null);
                 }
 
                 @Override
-                protected void onExecuted(Bundle args, String result) {
+                protected void onExecuted(Bundle args, Spanned result) {
                     if (result != null) {
                         new AlertDialog.Builder(parentFragment.getContext())
                                 .setTitle(R.string.title_action_items)
