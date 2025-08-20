@@ -70,7 +70,7 @@ import javax.mail.internet.InternetAddress;
 // https://developer.android.com/topic/libraries/architecture/room.html
 
 @Database(
-        version = 302,
+        version = 303,
         entities = {
                 EntityIdentity.class,
                 EntityAccount.class,
@@ -3142,6 +3142,12 @@ public abstract class DB extends RoomDatabase {
                         db.execSQL("ALTER TABLE `message` ADD COLUMN `status` TEXT");
                         db.execSQL("CREATE INDEX `index_message_assignee` ON `message` (`assignee`)");
                         db.execSQL("CREATE INDEX `index_message_status` ON `message` (`status`)");
+                    }
+                }).addMigrations(new Migration(302, 303) {
+                    @Override
+                    public void migrate(@NonNull SupportSQLiteDatabase db) {
+                        logMigration(startVersion, endVersion);
+                        db.execSQL("ALTER TABLE `message` ADD COLUMN `recurrence_rule` TEXT");
                     }
                 }).addMigrations(new Migration(998, 999) {
                     @Override
